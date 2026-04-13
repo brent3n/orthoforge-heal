@@ -4,3 +4,20 @@ dist/
 .env.*
 .DS_Store
 Thumbs.db
+
+# dependencies
+node_modules/
+
+# build output
+dist/
+
+# environment
+.env
+.env.*
+
+# system files
+.DS_Store
+Thumbs.db
+
+# Visual Studio junk
+.vs/

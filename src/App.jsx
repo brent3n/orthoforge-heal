@@ -668,7 +668,7 @@ export default function App() {
 
         {/* ─── TITLE ───────────────────────────────────── */}
         <h1 style={{ fontSize: 22, fontWeight: 700, color: COLORS.accent, marginBottom: 16, letterSpacing: 0.5 }}>
-          Orthoforge Healing Analysis
+          Orthoforge Healing Analysis V2
         </h1>
 
         {/* ─── MAIN CHART ──────────────────────────────── */}
