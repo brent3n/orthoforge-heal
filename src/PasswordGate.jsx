@@ -7,8 +7,8 @@ import { useState, useEffect } from "react";
 //   2. Encode your new password
 //   3. Reverse the resulting string
 //   4. Replace the value below
-// Current password: OrthoForge2024
-const _k = "=QjMwITZnJ3bG9Ga0J3T";  // reversed base64 of "OrthoForge2024"
+// Current password: Orthoforge2026-v7
+const _k = "=KcjdtYjMwITZnJ3bm9Ga0J3T";  // reversed base64 of "OrthoForge2026-v7" T3J0aG9mb3JnZTIwMjYtdjcK
 const _d = (s) => { try { return atob(s.split("").reverse().join("")); } catch { return ""; } };
 
 export default function PasswordGate({ children }) {
