@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 //   4. Replace the value below
 // Current password: OFI2026-v7
 const _k = "K0wN21iNyAjMJZ0T";  // reversed base64 of "OFI2026-v7" T0ZJMjAyNi12Nw0K
-const _d = (s) => { try { return atob(s.split("").reverse().join("")); } catch { return ""; } };
+const _d = (s) => { try { return atob(s.split("").reverse().join("")).trim(); } catch { return ""; } };
 
 export default function PasswordGate({ children }) {
   const [authenticated, setAuthenticated] = useState(false);

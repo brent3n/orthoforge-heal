@@ -121,9 +121,8 @@ function getRegionStageInfo(row, prefix) {
 
 // ─── Donut Chart (colored by current healing stage) ──────────
 function DonutChart({ currentRow }) {
-  const size = 220;
-  const cx = size / 2;
-  const cy = size / 2;
+  const cx = 165;
+  const cy = 130;
   const outerR = 90;
   const innerR = 38;
 
@@ -155,58 +154,47 @@ function DonutChart({ currentRow }) {
   const dividerAngles = [Math.PI / 4, (3 * Math.PI) / 4, (5 * Math.PI) / 4, (7 * Math.PI) / 4];
 
   return (
-    <div style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center" }}>
-      <div style={{ color: COLORS.text, fontSize: 13, fontWeight: 600, marginBottom: 4, fontFamily: "'DM Sans', sans-serif", letterSpacing: 1 }}>
-        Anterior
-      </div>
-      <div style={{ position: "relative" }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          {regions.map((r, i) => (
-            <path key={`bg-${i}`} d={arcPath(r.startAngle, r.endAngle, outerR, innerR)} fill="#2d333b" opacity={0.6} />
-          ))}
-          {regions.map((r, i) => {
-            const fillPct = r.info.overall;
-            if (fillPct <= 0) return null;
-            const totalAngle = r.endAngle - r.startAngle;
-            const filledAngle = r.startAngle + totalAngle * Math.min(fillPct / 100, 1);
-            return (
-              <path
-                key={`fill-${i}`}
-                d={arcPath(r.startAngle, filledAngle, outerR, innerR)}
-                fill={r.info.color}
-                style={{ transition: "all 0.6s ease-out" }}
-              />
-            );
-          })}
-          <circle cx={cx} cy={cy} r={innerR - 2} fill={COLORS.bg} />
-          {dividerAngles.map((angle, i) => {
-            const x1 = cx + (innerR - 6) * Math.sin(angle);
-            const y1 = cy - (innerR - 6) * Math.cos(angle);
-            const x2 = cx + (outerR + 6) * Math.sin(angle);
-            const y2 = cy - (outerR + 6) * Math.cos(angle);
-            return <line key={`div-${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#e6edf3" strokeWidth={2} />;
-          })}
-        </svg>
-        <div style={{ position: "absolute", left: -55, top: "50%", transform: "translateY(-50%)", color: COLORS.text, fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>Medial</div>
-        <div style={{ position: "absolute", right: -55, top: "50%", transform: "translateY(-50%)", color: COLORS.text, fontSize: 13, fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>Lateral</div>
-      </div>
-      <div style={{ color: COLORS.text, fontSize: 13, fontWeight: 600, marginTop: 4, fontFamily: "'DM Sans', sans-serif", letterSpacing: 1 }}>Posterior</div>
-    </div>
+    <svg width="100%" height="100%" viewBox="0 0 330 260" preserveAspectRatio="xMidYMid meet">
+      {regions.map((r, i) => (
+        <path key={`bg-${i}`} d={arcPath(r.startAngle, r.endAngle, outerR, innerR)} fill="#2d333b" opacity={0.6} />
+      ))}
+      {regions.map((r, i) => {
+        const fillPct = r.info.overall;
+        if (fillPct <= 0) return null;
+        const totalAngle = r.endAngle - r.startAngle;
+        const filledAngle = r.startAngle + totalAngle * Math.min(fillPct / 100, 1);
+        return (
+          <path key={`fill-${i}`} d={arcPath(r.startAngle, filledAngle, outerR, innerR)} fill={r.info.color} style={{ transition: "all 0.6s ease-out" }} />
+        );
+      })}
+      <circle cx={cx} cy={cy} r={innerR - 2} fill={COLORS.bg} />
+      {dividerAngles.map((angle, i) => {
+        const x1 = cx + (innerR - 6) * Math.sin(angle);
+        const y1 = cy - (innerR - 6) * Math.cos(angle);
+        const x2 = cx + (outerR + 6) * Math.sin(angle);
+        const y2 = cy - (outerR + 6) * Math.cos(angle);
+        return <line key={`div-${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#e6edf3" strokeWidth={2} />;
+      })}
+      <text x="165" y="22" textAnchor="middle" fontSize="13" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Anterior</text>
+      <text x="165" y="248" textAnchor="middle" fontSize="13" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Posterior</text>
+      <text x="38" y="134" textAnchor="middle" fontSize="13" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Medial</text>
+      <text x="292" y="134" textAnchor="middle" fontSize="13" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Lateral</text>
+    </svg>
   );
 }
 
 // ─── Stage Progress Bar ──────────────────────────────────────
 function StageBar({ label, stages }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 14 }}>
-      <div style={{ width: 90, textAlign: "right", color: COLORS.text, fontWeight: 700, fontSize: 14, fontFamily: "'DM Sans', sans-serif" }}>{label}</div>
+    <div style={{ display: "flex", alignItems: "stretch", gap: 16, flex: 1, minHeight: 24 }}>
+      <div style={{ width: 90, textAlign: "right", color: COLORS.text, fontWeight: 700, fontSize: 14, fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>{label}</div>
       <div style={{ display: "flex", gap: 4, flex: 1 }}>
         {[1, 2, 3, 4].map((stage) => {
           const val = stages[stage - 1] || 0;
           const isComplete = val >= 100;
           const stageColor = STAGE_COLORS[stage - 1];
           return (
-            <div key={stage} style={{ flex: 1, height: 36, borderRadius: 4, position: "relative", overflow: "hidden", background: COLORS.stageEmpty, border: `1px solid ${val > 0 ? stageColor : "#3a424d"}` }}>
+            <div key={stage} style={{ flex: 1, borderRadius: 4, position: "relative", overflow: "hidden", background: COLORS.stageEmpty, border: `1px solid ${val > 0 ? stageColor : "#3a424d"}` }}>
               {val > 0 && (
                 <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${Math.min(val, 100)}%`, background: isComplete ? stageColor : `linear-gradient(90deg, ${stageColor}cc, ${stageColor}66)`, transition: "width 0.6s ease-out" }} />
               )}
@@ -574,7 +562,7 @@ export default function App() {
   const playFromStart = () => { setCurrentIndex(0); setIsPlaying(true); };
 
   return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif", background: COLORS.bg, minHeight: "100vh", color: COLORS.text }}>
+    <div style={{ fontFamily: "'DM Sans', sans-serif", background: COLORS.bg, height: "100vh", overflow: "hidden", color: COLORS.text, boxSizing: "border-box" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=JetBrains+Mono:wght@400;500;600&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -583,17 +571,27 @@ export default function App() {
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: ${COLORS.accent}; cursor: pointer; border: 2px solid #fff; }
         .recharts-cartesian-grid-horizontal line, .recharts-cartesian-grid-vertical line { stroke: ${COLORS.gridLine} !important; }
         select { font-family: 'DM Sans', sans-serif; }
+        .app-inner { padding: 20px 24px; height: 100%; display: flex; flex-direction: column; min-height: 0; }
+        @media (max-width: 639px) { .app-inner { padding: 12px; } }
+        @media (max-height: 799px) { .app-inner { padding: 10px 16px; } }
+        .compact-mb { margin-bottom: 20px; }
+        @media (max-height: 799px) { .compact-mb { margin-bottom: 10px; } }
+        .chart-card { padding: 20px 16px 12px 8px; }
+        @media (max-height: 799px) { .chart-card { padding: 12px 8px 8px 8px; } }
+        .patient-grid { grid-template-columns: repeat(6, 1fr); }
+        @media (max-width: 899px) { .patient-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 599px) { .patient-grid { grid-template-columns: repeat(2, 1fr); } }
       `}</style>
 
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "20px 24px" }}>
+      <div className="app-inner" style={{ maxWidth: 1280, margin: "0 auto" }}>
         {/* ─── PATIENT HEADER ──────────────────────────── */}
-        <div style={{ background: COLORS.headerBg, borderRadius: 10, borderTop: `4px solid ${COLORS.headerBorder}`, padding: "16px 20px", marginBottom: 20, boxShadow: "0 2px 12px rgba(0,0,0,0.3)" }}>
+        <div className="compact-mb" style={{ background: COLORS.headerBg, borderRadius: 10, borderTop: `4px solid ${COLORS.headerBorder}`, padding: "16px 20px", boxShadow: "0 2px 12px rgba(0,0,0,0.3)" }}>
           {patientData ? (
             <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
               {/* Real logo from PDF */}
               <img src="./orthoforge-logo.png" alt="OrthoForge" style={{ width: 76, height: 76, objectFit: "contain", flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px 24px" }}>
+                <div className="patient-grid" style={{ display: "grid", gap: "8px 24px" }}>
                   {[
                     ["Patient Name", patientData.PatientName],
                     ["Patient ID", patientData.PatientID],
@@ -609,7 +607,7 @@ export default function App() {
                   ))}
                 </div>
                 <div style={{ height: 1, background: "#e0e0e0", margin: "10px 0" }} />
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px 24px" }}>
+                <div className="patient-grid" style={{ display: "grid", gap: "8px 24px" }}>
                   {[
                     ["Fracture Date", patientData.FractureDate],
                     ["Location", patientData.FractureLocation],
@@ -635,7 +633,7 @@ export default function App() {
         </div>
 
         {/* ─── PATIENT SELECTOR (with import option) ──── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", marginBottom: 20, background: COLORS.bgCard, borderRadius: 8, border: "1px solid #2d333b" }}>
+        <div className="compact-mb" style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: COLORS.bgCard, borderRadius: 8, border: "1px solid #2d333b" }}>
           <span style={{ color: COLORS.textMuted, fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>Select Patient:</span>
           <select
             value={selectedPatient}
@@ -672,8 +670,9 @@ export default function App() {
         </h1>
 
         {/* ─── MAIN CHART ──────────────────────────────── */}
-        <div style={{ background: COLORS.bgCard, borderRadius: 10, padding: "20px 16px 12px 8px", marginBottom: 20, border: "1px solid #2d333b" }}>
-          <ResponsiveContainer width="100%" height={320}>
+        <div className="chart-card" style={{ background: COLORS.bgCard, borderRadius: 10, marginBottom: 0, border: "1px solid #2d333b", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ flex: 1, minHeight: 0 }}>
+          <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gridLine} />
               <XAxis dataKey="week" stroke={COLORS.textMuted} tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} label={{ value: "Weeks", position: "insideBottom", offset: -4, fontSize: 12, fill: COLORS.textMuted }} />
@@ -696,6 +695,7 @@ export default function App() {
               )}
             </ComposedChart>
           </ResponsiveContainer>
+          </div>
 
           {/* Legend */}
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 20, paddingRight: 20, marginTop: 4 }}>
@@ -718,7 +718,7 @@ export default function App() {
         </div>
 
         {/* ─── PLAYBACK CONTROLS ───────────────────────── */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 20px", background: COLORS.bgCard, borderRadius: 8, marginBottom: 20, border: "1px solid #2d333b" }}>
+        <div className="compact-mb" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, padding: "12px 20px", background: COLORS.bgCard, borderRadius: 8, border: "1px solid #2d333b" }}>
           <button onClick={playFromStart} style={{ padding: "8px 16px", background: COLORS.accent, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>▶ Play</button>
           <button onClick={() => setIsPlaying(!isPlaying)} style={{ padding: "8px 16px", background: isPlaying ? "#e53e3e" : "#3a424d", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>{isPlaying ? "⏸ Pause" : "⏯ Resume"}</button>
           <div style={{ flex: 1 }}>
@@ -730,9 +730,9 @@ export default function App() {
         </div>
 
         {/* ─── STAGES + DONUT ──────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 24 }}>
-          <div style={{ background: COLORS.bgCard, borderRadius: 10, padding: 24, border: "1px solid #2d333b" }}>
-            <div style={{ display: "flex", gap: 20, marginBottom: 16, paddingLeft: 106 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, flex: 1, minHeight: 0 }}>
+          <div style={{ background: COLORS.bgCard, borderRadius: 10, padding: 24, border: "1px solid #2d333b", display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <div style={{ display: "flex", gap: 20, marginBottom: 8, paddingLeft: 106 }}>
               {["Stage 1", "Stage 2", "Stage 3", "Stage 4"].map((s, i) => (
                 <div key={s} style={{ display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
                   <div style={{ width: 12, height: 12, borderRadius: 2, background: STAGE_COLORS[i] }} />
@@ -740,12 +740,14 @@ export default function App() {
                 </div>
               ))}
             </div>
-            <StageBar label="Anterior" stages={[currentRow.Anterior_S1 ?? 0, currentRow.Anterior_S2 ?? 0, currentRow.Anterior_S3 ?? 0, currentRow.Anterior_S4 ?? 0]} />
-            <StageBar label="Lateral" stages={[currentRow.Lateral_S1 ?? 0, currentRow.Lateral_S2 ?? 0, currentRow.Lateral_S3 ?? 0, currentRow.Lateral_S4 ?? 0]} />
-            <StageBar label="Posterior" stages={[currentRow.Posterior_S1 ?? 0, currentRow.Posterior_S2 ?? 0, currentRow.Posterior_S3 ?? 0, currentRow.Posterior_S4 ?? 0]} />
-            <StageBar label="Medial" stages={[currentRow.Medial_S1 ?? 0, currentRow.Medial_S2 ?? 0, currentRow.Medial_S3 ?? 0, currentRow.Medial_S4 ?? 0]} />
+            <div style={{ display: "flex", flexDirection: "column", flex: 1, gap: 8 }}>
+              <StageBar label="Anterior" stages={[currentRow.Anterior_S1 ?? 0, currentRow.Anterior_S2 ?? 0, currentRow.Anterior_S3 ?? 0, currentRow.Anterior_S4 ?? 0]} />
+              <StageBar label="Lateral" stages={[currentRow.Lateral_S1 ?? 0, currentRow.Lateral_S2 ?? 0, currentRow.Lateral_S3 ?? 0, currentRow.Lateral_S4 ?? 0]} />
+              <StageBar label="Posterior" stages={[currentRow.Posterior_S1 ?? 0, currentRow.Posterior_S2 ?? 0, currentRow.Posterior_S3 ?? 0, currentRow.Posterior_S4 ?? 0]} />
+              <StageBar label="Medial" stages={[currentRow.Medial_S1 ?? 0, currentRow.Medial_S2 ?? 0, currentRow.Medial_S3 ?? 0, currentRow.Medial_S4 ?? 0]} />
+            </div>
           </div>
-          <div style={{ background: COLORS.bgCard, borderRadius: 10, padding: 24, border: "1px solid #2d333b", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: COLORS.bgCard, borderRadius: 10, padding: 24, border: "1px solid #2d333b", display: "flex", minHeight: 0 }}>
             <DonutChart currentRow={currentRow} />
           </div>
         </div>
