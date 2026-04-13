@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 //   3. Reverse the resulting string
 //   4. Replace the value below
 // Current password: OFI2026-v7
-const _k = "=owN21iNyAjMJZ0T";  // reversed base64 of "OFI2026-v7" T0ZJMjAyNi12Nwo=
+const _k = "T0ZJMjAyNi12Nwo=";  // reversed base64 of "OFI2026-v7" =owN21iNyAjMJZ0T
 const _d = (s) => { try { return atob(s.split("").reverse().join("")); } catch { return ""; } };
 
 export default function PasswordGate({ children }) {
