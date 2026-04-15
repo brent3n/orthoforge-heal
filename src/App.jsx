@@ -5,6 +5,7 @@ import {
   YAxis,
   CartesianGrid,
   ReferenceLine,
+  ReferenceArea,
   ResponsiveContainer,
   ComposedChart,
 } from "recharts";
@@ -38,6 +39,16 @@ const COLORS = {
 };
 
 const STAGE_COLORS = [COLORS.stage1, COLORS.stage2, COLORS.stage3, COLORS.stage4];
+
+// ─── Biological healing phase model ──────────────────────────
+// Adjust boundaries (start/end as fraction of total duration),
+// colors, or labels here — nowhere else.
+const HEALING_PHASES = [
+  { name: "Inflammatory", label: "Inflammatory", short: "Infl.",  start: 0.00, end: 0.10, fill: "#ef4444" },
+  { name: "Soft Callus",  label: "Soft Callus",  short: "Soft",   start: 0.10, end: 0.40, fill: "#f59e0b" },
+  { name: "Hard Callus",  label: "Hard Callus",  short: "Hard",   start: 0.40, end: 0.80, fill: "#10b981" },
+  { name: "Remodeling",   label: "Remodeling",   short: "Remod.", start: 0.80, end: 1.00, fill: "#6366f1" },
+];
 
 // ─── Percentile curve generator ──────────────────────────────
 function generatePercentileCurve(percentile, maxWeeks = 30) {
@@ -472,6 +483,13 @@ export default function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [fileName, setFileName] = useState("");
   const [selectedPatient, setSelectedPatient] = useState("sarah_johnson");
+  const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
+
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
   const intervalRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -531,9 +549,14 @@ export default function App() {
   const currentExamDate = fractureDate ? formatDate(addWeeks(fractureDate, currentRow.Week ?? 0)) : patientData?.ExamDate || "—";
   const lastExamDate = prevRow && fractureDate ? formatDate(addWeeks(fractureDate, prevRow.Week ?? 0)) : (currentIndex === 0 ? "—" : patientData?.LastExam || "—");
 
+  // Derive total timeline duration from actual patient data
+  const maxWeeks = useMemo(() => {
+    if (!timeData.length) return 30;
+    return Math.max(...timeData.map((r) => r.Week ?? 0));
+  }, [timeData]);
+
   // Chart data
   const chartData = useMemo(() => {
-    const maxWeeks = 30;
     const p25 = generatePercentileCurve(25, maxWeeks);
     const p50 = generatePercentileCurve(50, maxWeeks);
     const p75 = generatePercentileCurve(75, maxWeeks);
@@ -557,7 +580,7 @@ export default function App() {
       });
     }
     return merged;
-  }, [timeData, currentIndex, currentRow]);
+  }, [timeData, currentIndex, currentRow, maxWeeks]);
 
   const playFromStart = () => { setCurrentIndex(0); setIsPlaying(true); };
 
@@ -707,6 +730,24 @@ export default function App() {
               <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gridLine} />
               <XAxis dataKey="week" stroke={COLORS.textMuted} tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} label={{ value: "Weeks", position: "insideBottom", offset: -4, fontSize: 12, fill: COLORS.textMuted }} />
               <YAxis domain={[0, 100]} stroke={COLORS.textMuted} tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} label={{ value: "%", position: "insideTopLeft", offset: 10, fontSize: 14, fill: COLORS.textMuted }} />
+
+              {/* ── Biological healing phase bands ───────────────── */}
+              {HEALING_PHASES.map((phase) => {
+                const x1 = phase.start * maxWeeks;
+                const x2 = phase.end   * maxWeeks;
+                const bandWeeks = x2 - x1;
+                const isMobile = windowWidth < 768;
+                const labelText = bandWeeks < 1.5 ? "" : isMobile && bandWeeks < 4 ? phase.short : phase.label;
+                return (
+                  <ReferenceArea
+                    key={phase.name}
+                    x1={x1} x2={x2}
+                    fill={phase.fill} fillOpacity={0.07}
+                    stroke={phase.fill} strokeOpacity={0.18} strokeWidth={1}
+                    label={labelText ? { value: labelText, position: "insideTopLeft", fontSize: 10, fill: phase.fill, fontFamily: "'DM Sans', sans-serif", fontWeight: 600, opacity: 0.8 } : undefined}
+                  />
+                );
+              })}
 
               {/* Percentile lines — ALL same muted color, all solid */}
               <Line type="monotone" dataKey="p25" stroke={COLORS.percentile} strokeWidth={1.2} dot={false} strokeOpacity={0.5} />
