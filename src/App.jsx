@@ -534,7 +534,7 @@ export default function App() {
   // Chart data
   const chartData = useMemo(() => {
     const maxWeeks = 30;
-    const p10 = generatePercentileCurve(10, maxWeeks);
+    const p25 = generatePercentileCurve(25, maxWeeks);
     const p50 = generatePercentileCurve(50, maxWeeks);
     const p75 = generatePercentileCurve(75, maxWeeks);
     const p90 = generatePercentileCurve(90, maxWeeks);
@@ -550,7 +550,7 @@ export default function App() {
       }
       merged.push({
         week: w,
-        p10: p10[w]?.value ?? 100, p50: p50[w]?.value ?? 100,
+        p25: p25[w]?.value ?? 25, p50: p50[w]?.value ?? 50,
         p75: p75[w]?.value ?? 100, p90: p90[w]?.value ?? 100,
         patient: inRange && patientRow ? patientRow.Overall_Pct : null,
         projected: projected ? projVal : (w === (currentRow.Week ?? 0) ? currentRow.Overall_Pct : null),
@@ -696,7 +696,7 @@ export default function App() {
 
         {/* ─── TITLE ───────────────────────────────────── */}
         <h1 className="compact-mb dash-title" style={{ fontWeight: 700, color: COLORS.accent, letterSpacing: 0.5 }}>
-          Orthoforge Healing Analysis V2
+          Orthoforge Healing Analysis V8
         </h1>
 
         {/* ─── MAIN CHART ──────────────────────────────── */}
@@ -709,7 +709,7 @@ export default function App() {
               <YAxis domain={[0, 100]} stroke={COLORS.textMuted} tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} label={{ value: "%", position: "insideTopLeft", offset: 10, fontSize: 14, fill: COLORS.textMuted }} />
 
               {/* Percentile lines — ALL same muted color, all solid */}
-              <Line type="monotone" dataKey="p10" stroke={COLORS.percentile} strokeWidth={1.2} dot={false} strokeOpacity={0.5} />
+              <Line type="monotone" dataKey="p25" stroke={COLORS.percentile} strokeWidth={1.2} dot={false} strokeOpacity={0.5} />
               <Line type="monotone" dataKey="p50" stroke={COLORS.percentile} strokeWidth={1.2} dot={false} strokeOpacity={0.65} />
               <Line type="monotone" dataKey="p75" stroke={COLORS.percentile} strokeWidth={1.2} dot={false} strokeOpacity={0.8} />
               <Line type="monotone" dataKey="p90" stroke={COLORS.percentile} strokeWidth={1.2} dot={false} strokeOpacity={0.95} />
@@ -733,7 +733,7 @@ export default function App() {
               { label: "90th", opacity: 0.95 },
               { label: "75th", opacity: 0.8 },
               { label: "50th", opacity: 0.65 },
-              { label: "10th", opacity: 0.5 },
+              { label: "25th", opacity: 0.5 },
             ].map((p) => (
               <div key={p.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <svg width="20" height="6" viewBox="0 0 20 6"><line x1="0" y1="3" x2="20" y2="3" stroke={COLORS.percentile} strokeWidth={1.5} strokeOpacity={p.opacity} /></svg>
@@ -783,7 +783,7 @@ export default function App() {
         </div>
 
         <div style={{ textAlign: "center", padding: "24px 0 12px", color: COLORS.textMuted, fontSize: 12 }}>
-          OrthoForge Healing Analysis • Clinical Evaluation Dashboard
+          OrthoForge Healing Analysis • Clinical Evaluation Dashboard • All rights reserved, confidential 2026
         </div>
       </div>
     </div>
