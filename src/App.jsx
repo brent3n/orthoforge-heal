@@ -40,6 +40,16 @@ const COLORS = {
 
 const STAGE_COLORS = [COLORS.stage1, COLORS.stage2, COLORS.stage3, COLORS.stage4];
 
+// ─── Phase transition tuning ─────────────────────────────────
+// Edit these values to tune the soft-boundary blend effect.
+const PHASE_TRANSITION_WIDTH_FRACTION = 0.04;  // fade zone half-width as fraction of total timeline
+const PHASE_TRANSITION_OPACITY        = 0.10;  // peak blend opacity at the boundary center
+const PHASE_TRANSITION_STEPS          = 6;     // gradient steps per side (higher = smoother)
+const PHASE_BOUNDARY_STROKE_OPACITY   = 0.08;  // opacity of the hard separator stroke on main bands
+const PAUSE_COLOR                     = "#d97706"; // pause button — keep distinct from stage colors
+const CHART_FLEX_WEIGHT               = 1.5;       // chart height relative to bottom panels (1.0 = equal split)
+const BOTTOM_PANEL_OPACITY            = 0.75;      // stage matrix active fills + donut segment fills
+
 // ─── Region / stage metadata ─────────────────────────────────
 const REGION_NAMES = ["Anterior", "Lateral", "Posterior", "Medial"];
 
@@ -51,26 +61,24 @@ const STAGE_LABELS = {
   4: "Remodeling",
 };
 
-// Returns the stage with the highest value for a given region.
-// Initializes from Stage 1 so that ties (including all-zero) stay at Stage 1.
+// Returns the highest-numbered stage with any activity (> 0).
+// Correct for cumulative milestone fields: S1 fills 0→100 and stays there,
+// so the active biological frontier is the highest stage with a non-zero value.
 function getRegionStage(row, region) {
-  let bestStage = 1;
-  let bestValue = row[`${region}_S1`] ?? 0;
-  for (let s = 2; s <= 4; s++) {
-    const value = row[`${region}_S${s}`] ?? 0;
-    if (value > bestValue) { bestValue = value; bestStage = s; }
+  for (let s = 4; s >= 1; s--) {
+    if ((row[`${region}_S${s}`] ?? 0) > 0) return s;
   }
-  return bestStage;
+  return 1;
 }
 
 // ─── Biological healing phase model ──────────────────────────
 // Adjust boundaries (start/end as fraction of total duration),
 // colors, or labels here — nowhere else.
 const HEALING_PHASES = [
-  { name: "Inflammatory", label: "Inflammatory", short: "Infl.",  start: 0.00, end: 0.10, fill: "#ef4444" },
-  { name: "Soft Callus",  label: "Soft Callus",  short: "Soft",   start: 0.10, end: 0.40, fill: "#f59e0b" },
-  { name: "Hard Callus",  label: "Hard Callus",  short: "Hard",   start: 0.40, end: 0.80, fill: "#10b981" },
-  { name: "Remodeling",   label: "Remodeling",   short: "Remod.", start: 0.80, end: 1.00, fill: "#6366f1" },
+  { name: "Inflammatory", label: "Inflammatory", short: "Infl.",  start: 0.00, end: 0.10, fill: COLORS.stage1 },
+  { name: "Soft Callus",  label: "Soft Callus",  short: "Soft",   start: 0.10, end: 0.40, fill: COLORS.stage2 },
+  { name: "Hard Callus",  label: "Hard Callus",  short: "Hard",   start: 0.40, end: 0.80, fill: COLORS.stage3 },
+  { name: "Remodeling",   label: "Remodeling",   short: "Remod.", start: 0.80, end: 1.00, fill: COLORS.stage4 },
 ];
 
 // ─── Percentile curve generator ──────────────────────────────
@@ -155,10 +163,10 @@ function getRegionStageInfo(row, prefix) {
 
 // ─── Donut Chart (colored by current healing stage) ──────────
 function DonutChart({ currentRow }) {
-  const cx = 165;
-  const cy = 130;
-  const outerR = 90;
-  const innerR = 38;
+  const cx = 180;
+  const cy = 160;
+  const outerR = 135;
+  const innerR = 60;
 
   const antInfo = getRegionStageInfo(currentRow, "Anterior");
   const latInfo = getRegionStageInfo(currentRow, "Lateral");
@@ -188,7 +196,7 @@ function DonutChart({ currentRow }) {
   const dividerAngles = [Math.PI / 4, (3 * Math.PI) / 4, (5 * Math.PI) / 4, (7 * Math.PI) / 4];
 
   return (
-    <svg width="100%" height="100%" viewBox="0 0 330 260" preserveAspectRatio="xMidYMid meet">
+    <svg width="100%" height="100%" viewBox="0 -15 360 345" preserveAspectRatio="xMidYMid meet">
       {regions.map((r, i) => (
         <path key={`bg-${i}`} d={arcPath(r.startAngle, r.endAngle, outerR, innerR)} fill="#2d333b" opacity={0.6} />
       ))}
@@ -198,7 +206,7 @@ function DonutChart({ currentRow }) {
         const totalAngle = r.endAngle - r.startAngle;
         const filledAngle = r.startAngle + totalAngle * Math.min(fillPct / 100, 1);
         return (
-          <path key={`fill-${i}`} d={arcPath(r.startAngle, filledAngle, outerR, innerR)} fill={r.info.color} style={{ transition: "all 0.6s ease-out" }} />
+          <path key={`fill-${i}`} d={arcPath(r.startAngle, filledAngle, outerR, innerR)} fill={r.info.color} opacity={BOTTOM_PANEL_OPACITY} style={{ transition: "all 0.6s ease-out" }} />
         );
       })}
       <circle cx={cx} cy={cy} r={innerR - 2} fill={COLORS.bg} />
@@ -209,10 +217,10 @@ function DonutChart({ currentRow }) {
         const y2 = cy - (outerR + 6) * Math.cos(angle);
         return <line key={`div-${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#e6edf3" strokeWidth={2} />;
       })}
-      <text x="165" y="22" textAnchor="middle" fontSize="13" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Anterior</text>
-      <text x="165" y="248" textAnchor="middle" fontSize="13" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Posterior</text>
-      <text x="38" y="134" textAnchor="middle" fontSize="13" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Medial</text>
-      <text x="292" y="134" textAnchor="middle" fontSize="13" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Lateral</text>
+      <text x="180" y="7"  textAnchor="middle" fontSize="32" fontWeight="700" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Anterior</text>
+      <text x="180" y="330" textAnchor="middle" fontSize="32" fontWeight="700" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Posterior</text>
+      <text x="-30"  y="164" textAnchor="middle" fontSize="32" fontWeight="700" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Medial</text>
+      <text x="390" y="164" textAnchor="middle" fontSize="32" fontWeight="700" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Lateral</text>
     </svg>
   );
 }
@@ -230,7 +238,7 @@ function StageBar({ label, stages }) {
           return (
             <div key={stage} style={{ flex: 1, borderRadius: 4, position: "relative", overflow: "hidden", background: COLORS.stageEmpty, border: `1px solid ${val > 0 ? stageColor : "#3a424d"}` }}>
               {val > 0 && (
-                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${Math.min(val, 100)}%`, background: isComplete ? stageColor : `linear-gradient(90deg, ${stageColor}cc, ${stageColor}66)`, transition: "width 0.6s ease-out" }} />
+                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${Math.min(val, 100)}%`, background: isComplete ? stageColor : `linear-gradient(90deg, ${stageColor}cc, ${stageColor}66)`, transition: "width 0.6s ease-out", opacity: BOTTOM_PANEL_OPACITY }} />
               )}
               <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: isComplete ? "#fff" : val > 0 ? "#ddd" : COLORS.textMuted, fontSize: 12, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>
                 Stage {stage}
@@ -505,7 +513,7 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [fileName, setFileName] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState("sarah_johnson");
+  const [selectedPatient, setSelectedPatient] = useState("elena_rodriguez");
   const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
 
   useEffect(() => {
@@ -681,9 +689,9 @@ export default function App() {
         /* ── Desktop layout (default) ───────────────────────── */
         .app-outer   { height: 100dvh; overflow: hidden; }
         .app-inner   { padding: 20px 24px; height: 100%; display: flex; flex-direction: column; min-height: 0; }
-        .compact-mb  { margin-bottom: 20px; }
+        .compact-mb  { margin-bottom: 12px; }
         .dash-title  { font-size: 22px; }
-        .chart-card  { padding: 20px 16px 12px 8px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+        .chart-card  { padding: 20px 16px 12px 8px; flex: ${CHART_FLEX_WEIGHT}; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
         .stages-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; flex: 1; min-height: 0; }
         .stages-card { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
         .donut-card  { display: flex; min-height: 0; min-width: 0; }
@@ -721,11 +729,11 @@ export default function App() {
 
       <div className="app-inner" style={{ maxWidth: 1280, margin: "0 auto" }}>
         {/* ─── PATIENT HEADER ──────────────────────────── */}
-        <div className="compact-mb" style={{ background: COLORS.headerBg, borderRadius: 10, borderTop: `4px solid ${COLORS.headerBorder}`, padding: "16px 20px", boxShadow: "0 2px 12px rgba(0,0,0,0.3)" }}>
+        <div className="compact-mb" style={{ background: COLORS.headerBg, borderRadius: 10, borderTop: `4px solid ${COLORS.headerBorder}`, padding: "10px 14px", boxShadow: "0 2px 12px rgba(0,0,0,0.3)" }}>
           {patientData ? (
-            <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
               {/* Real logo from PDF */}
-              <img src="./orthoforge-logo.png" alt="OrthoForge" className="patient-logo" style={{ width: 76, height: 76, objectFit: "contain", flexShrink: 0 }} />
+              <img src="./orthoforge-logo.png" alt="OrthoForge" className="patient-logo" style={{ width: 52, height: 52, objectFit: "contain", flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
                 <div className="patient-grid">
                   {[
@@ -738,11 +746,11 @@ export default function App() {
                   ].map(([label, val]) => (
                     <div key={label}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.textDark, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
-                      <div style={{ fontSize: 14, color: COLORS.textDark, fontFamily: "'JetBrains Mono', monospace" }}>{val || "—"}</div>
+                      <div style={{ fontSize: 12, color: COLORS.textDark, fontFamily: "'JetBrains Mono', monospace" }}>{val || "—"}</div>
                     </div>
                   ))}
                 </div>
-                <div style={{ height: 1, background: "#e0e0e0", margin: "10px 0" }} />
+                <div style={{ height: 1, background: "#e0e0e0", margin: "6px 0" }} />
                 <div className="patient-grid">
                   {[
                     ["Fracture Date", patientData.FractureDate],
@@ -754,7 +762,7 @@ export default function App() {
                   ].map(([label, val]) => (
                     <div key={label + "2"}>
                       <div style={{ fontSize: 11, fontWeight: 700, color: COLORS.textDark, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</div>
-                      <div style={{ fontSize: 14, color: COLORS.textDark, fontFamily: "'JetBrains Mono', monospace" }}>{val || "—"}</div>
+                      <div style={{ fontSize: 12, color: COLORS.textDark, fontFamily: "'JetBrains Mono', monospace" }}>{val || "—"}</div>
                     </div>
                   ))}
                 </div>
@@ -802,7 +810,7 @@ export default function App() {
 
         {/* ─── TITLE ───────────────────────────────────── */}
         <h1 className="compact-mb dash-title" style={{ fontWeight: 700, color: COLORS.accent, letterSpacing: 0.5 }}>
-          Orthoforge Healing Analysis V8
+          Orthoforge Healing Analysis
         </h1>
 
         {/* ─── MAIN CHART ──────────────────────────────── */}
@@ -811,7 +819,7 @@ export default function App() {
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gridLine} />
-              <XAxis dataKey="week" type="number" domain={[0, maxWeeks]} stroke={COLORS.textMuted} tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} label={{ value: "Weeks", position: "insideBottom", offset: -4, fontSize: 12, fill: COLORS.textMuted }} />
+              <XAxis dataKey="week" type="number" domain={[0, maxWeeks]} stroke={COLORS.textMuted} tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} label={{ value: "Normalized Healing Period", position: "insideBottom", offset: -4, fontSize: 12, fill: COLORS.textMuted }} />
               <YAxis domain={[0, 100]} stroke={COLORS.textMuted} tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} label={{ value: "%", position: "insideTopLeft", offset: 10, fontSize: 14, fill: COLORS.textMuted }} />
 
               {/* ── Biological healing phase bands ───────────────── */}
@@ -826,10 +834,30 @@ export default function App() {
                     key={phase.name}
                     x1={x1} x2={x2}
                     fill={phase.fill} fillOpacity={0.15}
-                    stroke={phase.fill} strokeOpacity={0.35} strokeWidth={1}
+                    stroke={phase.fill} strokeOpacity={PHASE_BOUNDARY_STROKE_OPACITY} strokeWidth={1}
                     label={labelText ? { value: labelText, position: "insideTopLeft", fontSize: 10, fill: phase.fill, fontFamily: "'DM Sans', sans-serif", fontWeight: 600, opacity: 0.8 } : undefined}
                   />
                 );
+              })}
+
+              {/* ── Phase transition blend zones (behind percentile lines) ── */}
+              {HEALING_PHASES.slice(0, -1).flatMap((phase, i) => {
+                const nextPhase = HEALING_PHASES[i + 1];
+                const boundary  = phase.end * maxWeeks;
+                const halfWidth = PHASE_TRANSITION_WIDTH_FRACTION * maxWeeks;
+                return Array.from({ length: PHASE_TRANSITION_STEPS }, (_, step) => {
+                  const opacity = PHASE_TRANSITION_OPACITY * (PHASE_TRANSITION_STEPS - step) / PHASE_TRANSITION_STEPS;
+                  const inner   = (step       / PHASE_TRANSITION_STEPS) * halfWidth;
+                  const outer   = ((step + 1) / PHASE_TRANSITION_STEPS) * halfWidth;
+                  return [
+                    <ReferenceArea key={`${phase.name}-tl-${step}`}
+                      x1={boundary - outer} x2={boundary - inner}
+                      fill={nextPhase.fill} fillOpacity={opacity} stroke="none" />,
+                    <ReferenceArea key={`${phase.name}-tr-${step}`}
+                      x1={boundary + inner} x2={boundary + outer}
+                      fill={phase.fill} fillOpacity={opacity} stroke="none" />,
+                  ];
+                }).flat();
               })}
 
               {/* Percentile lines — ALL same muted color, all solid */}
@@ -888,7 +916,7 @@ export default function App() {
               </div>
               <span style={{ fontSize: 11, color: COLORS.textMuted,
                 fontFamily: "'JetBrains Mono', monospace" }}>
-                Concordance: {globalPhase.concordancePct}% — {globalPhase.alignmentLabel}
+                Anatomical Region Alignment: {globalPhase.concordancePct}% — {globalPhase.alignmentLabel}
               </span>
               {!globalPhase.hasTie && (globalPhase.leading.length > 0 || globalPhase.lagging.length > 0) && (
                 <span style={{ fontSize: 11, color: COLORS.textMuted,
@@ -905,12 +933,12 @@ export default function App() {
         {/* ─── PLAYBACK CONTROLS ───────────────────────── */}
         <div className="compact-mb" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, padding: "12px 20px", background: COLORS.bgCard, borderRadius: 8, border: "1px solid #2d333b" }}>
           <button onClick={playFromStart} className="ctrl-btn" style={{ background: COLORS.accent, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>▶ Play</button>
-          <button onClick={() => setIsPlaying(!isPlaying)} className="ctrl-btn" style={{ background: isPlaying ? "#e53e3e" : "#3a424d", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{isPlaying ? "⏸ Pause" : "⏯ Resume"}</button>
+          <button onClick={() => setIsPlaying(!isPlaying)} className="ctrl-btn" style={{ background: isPlaying ? PAUSE_COLOR : "#3a424d", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{isPlaying ? "⏸ Pause" : "⏯ Resume"}</button>
           <div style={{ flex: 1 }}>
             <input type="range" min={0} max={Math.max(timeData.length - 1, 0)} value={currentIndex} onChange={(e) => { setIsPlaying(false); setCurrentIndex(Number(e.target.value)); }} style={{ width: "100%" }} />
           </div>
           <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: COLORS.patient, minWidth: 120, textAlign: "right" }}>
-            Week {currentRow.Week ?? 0} &nbsp;|&nbsp; {Math.round(currentRow.Overall_Pct ?? 0)}%
+            Normalized Healing {currentRow.Week ?? 0} &nbsp;|&nbsp; {Math.round(currentRow.Overall_Pct ?? 0)}%
           </div>
         </div>
 
@@ -932,13 +960,13 @@ export default function App() {
               <StageBar label="Medial" stages={[currentRow.Medial_S1 ?? 0, currentRow.Medial_S2 ?? 0, currentRow.Medial_S3 ?? 0, currentRow.Medial_S4 ?? 0]} />
             </div>
           </div>
-          <div className="donut-card viz-card" style={{ padding: 24 }}>
+          <div className="donut-card viz-card" style={{ padding: 16 }}>
             <DonutChart currentRow={currentRow} />
           </div>
         </div>
 
         <div style={{ textAlign: "center", padding: "24px 0 12px", color: COLORS.textMuted, fontSize: 12 }}>
-          OrthoForge Healing Analysis • Clinical Evaluation Dashboard • All rights reserved, confidential 2026
+          OrthoForge Healing Analysis • Clinical Evaluation Dashboard • Version 12.3.0 • All rights reserved, Confidential 2026
         </div>
       </div>
     </div>
