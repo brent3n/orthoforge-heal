@@ -562,25 +562,55 @@ export default function App() {
   const playFromStart = () => { setCurrentIndex(0); setIsPlaying(true); };
 
   return (
-    <div style={{ fontFamily: "'DM Sans', sans-serif", background: COLORS.bg, height: "100vh", overflow: "hidden", color: COLORS.text, boxSizing: "border-box" }}>
+    <div className="app-outer" style={{ fontFamily: "'DM Sans', sans-serif", background: COLORS.bg, color: COLORS.text, boxSizing: "border-box" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: ${COLORS.bg}; margin: 0; }
+        /* ── Shared component styles ─────────────────────────── */
+        select { font-family: 'DM Sans', sans-serif; }
         input[type="range"] { -webkit-appearance: none; appearance: none; height: 6px; border-radius: 3px; background: #2d333b; outline: none; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: ${COLORS.accent}; cursor: pointer; border: 2px solid #fff; }
-        .recharts-cartesian-grid-horizontal line, .recharts-cartesian-grid-vertical line { stroke: ${COLORS.gridLine} !important; }
-        select { font-family: 'DM Sans', sans-serif; }
-        .app-inner { padding: 20px 24px; height: 100%; display: flex; flex-direction: column; min-height: 0; }
-        @media (max-width: 639px) { .app-inner { padding: 12px; } }
-        @media (max-height: 799px) { .app-inner { padding: 10px 16px; } }
-        .compact-mb { margin-bottom: 20px; }
-        @media (max-height: 799px) { .compact-mb { margin-bottom: 10px; } }
-        .chart-card { padding: 20px 16px 12px 8px; }
-        @media (max-height: 799px) { .chart-card { padding: 12px 8px 8px 8px; } }
-        .patient-grid { grid-template-columns: repeat(6, 1fr); }
-        @media (max-width: 899px) { .patient-grid { grid-template-columns: repeat(3, 1fr); } }
-        @media (max-width: 599px) { .patient-grid { grid-template-columns: repeat(2, 1fr); } }
+        .recharts-cartesian-grid-horizontal line,
+        .recharts-cartesian-grid-vertical line { stroke: ${COLORS.gridLine} !important; }
+        /* ── Shared card chrome ──────────────────────────────── */
+        .viz-card { background: #161b22; border: 1px solid #2d333b; border-radius: 10px; }
+        /* ── Desktop layout (default) ───────────────────────── */
+        .app-outer   { height: 100dvh; overflow: hidden; }
+        .app-inner   { padding: 20px 24px; height: 100%; display: flex; flex-direction: column; min-height: 0; }
+        .compact-mb  { margin-bottom: 20px; }
+        .dash-title  { font-size: 22px; }
+        .chart-card  { padding: 20px 16px 12px 8px; flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+        .stages-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; flex: 1; min-height: 0; }
+        .stages-card { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+        .donut-card  { display: flex; min-height: 0; min-width: 0; }
+        .patient-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px 24px; }
+        .ctrl-btn    { padding: 8px 16px; font-size: 13px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+        .select-input { padding: 8px 12px; font-size: 13px; }
+        /* ── Desktop compact (short viewport) ───────────────── */
+        @media (max-height: 799px) {
+          .app-inner  { padding: 10px 16px; }
+          .compact-mb { margin-bottom: 10px; }
+          .chart-card { padding: 12px 8px 8px 8px; }
+        }
+        /* ── Tablet 768–1023px ───────────────────────────────── */
+        @media (max-width: 1023px) and (min-width: 768px) {
+          .patient-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        /* ── Mobile < 768px ──────────────────────────────────── */
+        @media (max-width: 767px) {
+          .app-outer   { height: auto; min-height: 100dvh; overflow-y: auto; }
+          .app-inner   { height: auto; flex: none; padding: 10px 12px 24px; }
+          .compact-mb  { margin-bottom: 12px; }
+          .dash-title  { font-size: 16px; }
+          .chart-card  { flex: none; height: clamp(220px, 32vh, 340px); padding: 10px 6px 8px 4px; }
+          .stages-grid { display: flex; flex-direction: column; flex: none; gap: 12px; min-height: 0; }
+          .stages-card { height: clamp(220px, 32vh, 320px); }
+          .donut-card  { height: clamp(180px, 24vh, 240px); }
+          .patient-grid { grid-template-columns: repeat(2, 1fr); gap: 6px 12px; }
+          .patient-logo { display: none; }
+          .ctrl-btn    { min-height: 44px; padding: 10px 18px; font-size: 15px; }
+          .select-input { padding: 12px; font-size: 16px; }
+          input[type="range"] { height: 10px; }
+          input[type="range"]::-webkit-slider-thumb { width: 28px; height: 28px; }
+        }
       `}</style>
 
       <div className="app-inner" style={{ maxWidth: 1280, margin: "0 auto" }}>
@@ -589,9 +619,9 @@ export default function App() {
           {patientData ? (
             <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
               {/* Real logo from PDF */}
-              <img src="./orthoforge-logo.png" alt="OrthoForge" style={{ width: 76, height: 76, objectFit: "contain", flexShrink: 0 }} />
+              <img src="./orthoforge-logo.png" alt="OrthoForge" className="patient-logo" style={{ width: 76, height: 76, objectFit: "contain", flexShrink: 0 }} />
               <div style={{ flex: 1 }}>
-                <div className="patient-grid" style={{ display: "grid", gap: "8px 24px" }}>
+                <div className="patient-grid">
                   {[
                     ["Patient Name", patientData.PatientName],
                     ["Patient ID", patientData.PatientID],
@@ -607,7 +637,7 @@ export default function App() {
                   ))}
                 </div>
                 <div style={{ height: 1, background: "#e0e0e0", margin: "10px 0" }} />
-                <div className="patient-grid" style={{ display: "grid", gap: "8px 24px" }}>
+                <div className="patient-grid">
                   {[
                     ["Fracture Date", patientData.FractureDate],
                     ["Location", patientData.FractureLocation],
@@ -626,7 +656,7 @@ export default function App() {
             </div>
           ) : (
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <img src="./orthoforge-logo.png" alt="OrthoForge" style={{ width: 76, height: 76, objectFit: "contain" }} />
+              <img src="./orthoforge-logo.png" alt="OrthoForge" className="patient-logo" style={{ width: 76, height: 76, objectFit: "contain" }} />
               <div style={{ color: COLORS.textDark, fontSize: 16, fontWeight: 600 }}>OrthoForge — Select or load a patient file</div>
             </div>
           )}
@@ -646,7 +676,7 @@ export default function App() {
                 setSelectedPatient(e.target.value);
               }
             }}
-            style={{ flex: 1, maxWidth: 500, padding: "8px 12px", background: "#2d333b", color: COLORS.text, border: "1px solid #444c56", borderRadius: 6, fontSize: 13, cursor: "pointer", outline: "none" }}
+            className="select-input" style={{ flex: 1, maxWidth: 500, background: "#2d333b", color: COLORS.text, border: "1px solid #444c56", borderRadius: 6, cursor: "pointer", outline: "none" }}
           >
             {selectedPatient === "" && <option value="">— Custom File —</option>}
             {PATIENT_LIST.map((p) => (
@@ -665,12 +695,12 @@ export default function App() {
         </div>
 
         {/* ─── TITLE ───────────────────────────────────── */}
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: COLORS.accent, marginBottom: 16, letterSpacing: 0.5 }}>
+        <h1 className="compact-mb dash-title" style={{ fontWeight: 700, color: COLORS.accent, letterSpacing: 0.5 }}>
           Orthoforge Healing Analysis V2
         </h1>
 
         {/* ─── MAIN CHART ──────────────────────────────── */}
-        <div className="chart-card" style={{ background: COLORS.bgCard, borderRadius: 10, marginBottom: 0, border: "1px solid #2d333b", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div className="chart-card viz-card" style={{ marginBottom: 0 }}>
           <div style={{ flex: 1, minHeight: 0 }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 10 }}>
@@ -719,8 +749,8 @@ export default function App() {
 
         {/* ─── PLAYBACK CONTROLS ───────────────────────── */}
         <div className="compact-mb" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, padding: "12px 20px", background: COLORS.bgCard, borderRadius: 8, border: "1px solid #2d333b" }}>
-          <button onClick={playFromStart} style={{ padding: "8px 16px", background: COLORS.accent, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>▶ Play</button>
-          <button onClick={() => setIsPlaying(!isPlaying)} style={{ padding: "8px 16px", background: isPlaying ? "#e53e3e" : "#3a424d", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontSize: 13, fontFamily: "'DM Sans', sans-serif" }}>{isPlaying ? "⏸ Pause" : "⏯ Resume"}</button>
+          <button onClick={playFromStart} className="ctrl-btn" style={{ background: COLORS.accent, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>▶ Play</button>
+          <button onClick={() => setIsPlaying(!isPlaying)} className="ctrl-btn" style={{ background: isPlaying ? "#e53e3e" : "#3a424d", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{isPlaying ? "⏸ Pause" : "⏯ Resume"}</button>
           <div style={{ flex: 1 }}>
             <input type="range" min={0} max={Math.max(timeData.length - 1, 0)} value={currentIndex} onChange={(e) => { setIsPlaying(false); setCurrentIndex(Number(e.target.value)); }} style={{ width: "100%" }} />
           </div>
@@ -730,8 +760,8 @@ export default function App() {
         </div>
 
         {/* ─── STAGES + DONUT ──────────────────────────── */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24, flex: 1, minHeight: 0 }}>
-          <div style={{ background: COLORS.bgCard, borderRadius: 10, padding: 24, border: "1px solid #2d333b", display: "flex", flexDirection: "column", minHeight: 0 }}>
+        <div className="stages-grid">
+          <div className="stages-card viz-card" style={{ padding: 24 }}>
             <div style={{ display: "flex", gap: 20, marginBottom: 8, paddingLeft: 106 }}>
               {["Stage 1", "Stage 2", "Stage 3", "Stage 4"].map((s, i) => (
                 <div key={s} style={{ display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
@@ -747,7 +777,7 @@ export default function App() {
               <StageBar label="Medial" stages={[currentRow.Medial_S1 ?? 0, currentRow.Medial_S2 ?? 0, currentRow.Medial_S3 ?? 0, currentRow.Medial_S4 ?? 0]} />
             </div>
           </div>
-          <div style={{ background: COLORS.bgCard, borderRadius: 10, padding: 24, border: "1px solid #2d333b", display: "flex", minHeight: 0 }}>
+          <div className="donut-card viz-card" style={{ padding: 24 }}>
             <DonutChart currentRow={currentRow} />
           </div>
         </div>
