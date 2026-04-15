@@ -25,10 +25,10 @@ const COLORS = {
   stageEmpty: "#2d333b",
 
   // Stage colors — same across all regions for a given stage
-  stage1: "#30b8c9",   // teal
-  stage2: "#f59e0b",   // amber/gold
-  stage3: "#8b5cf6",   // purple
-  stage4: "#10b981",   // emerald green
+  stage1: "#ef4444",   // red    — Inflammatory
+  stage2: "#f59e0b",   // amber  — Soft Callus (unchanged)
+  stage3: "#10b981",   // green  — Hard Callus
+  stage4: "#6366f1",   // indigo — Remodeling
 
   // Percentile reference lines — all same muted color
   percentile: "#6e7681",
@@ -39,6 +39,29 @@ const COLORS = {
 };
 
 const STAGE_COLORS = [COLORS.stage1, COLORS.stage2, COLORS.stage3, COLORS.stage4];
+
+// ─── Region / stage metadata ─────────────────────────────────
+const REGION_NAMES = ["Anterior", "Lateral", "Posterior", "Medial"];
+
+// Explicit stage-to-name mapping — independent of HEALING_PHASES
+const STAGE_LABELS = {
+  1: "Inflammatory",
+  2: "Soft Callus",
+  3: "Hard Callus",
+  4: "Remodeling",
+};
+
+// Returns the stage with the highest value for a given region.
+// Initializes from Stage 1 so that ties (including all-zero) stay at Stage 1.
+function getRegionStage(row, region) {
+  let bestStage = 1;
+  let bestValue = row[`${region}_S1`] ?? 0;
+  for (let s = 2; s <= 4; s++) {
+    const value = row[`${region}_S${s}`] ?? 0;
+    if (value > bestValue) { bestValue = value; bestStage = s; }
+  }
+  return bestStage;
+}
 
 // ─── Biological healing phase model ──────────────────────────
 // Adjust boundaries (start/end as fraction of total duration),
@@ -555,6 +578,66 @@ export default function App() {
     return Math.max(...timeData.map((r) => r.Week ?? 0));
   }, [timeData]);
 
+  // Regional stage state derived from current row
+  const regionalStages = useMemo(() => {
+    if (currentRow == null || currentRow.Week == null) return null;
+    return REGION_NAMES.map((r) => ({ region: r, stage: getRegionStage(currentRow, r) }));
+  }, [currentRow]);
+
+  // Global phase interpretation derived from regional stages
+  const globalPhase = useMemo(() => {
+    if (!regionalStages) return null;
+    const stages = regionalStages.map((r) => r.stage);
+    const minStage = Math.min(...stages);
+    const maxStage = Math.max(...stages);
+
+    // Count regions per stage; detect ties in the dominant count
+    const counts = [0, 0, 0, 0, 0];
+    stages.forEach((s) => counts[s]++);
+    const maxCount = Math.max(...counts.slice(1));
+    const tiedStages = [1, 2, 3, 4].filter((s) => counts[s] === maxCount);
+    const hasTie = tiedStages.length > 1;
+    const dominantStage = hasTie ? null : tiedStages[0];
+
+    // Concordance thresholds: 100=High, 75=Moderate, 50=Low, 25=Very Low
+    const concordancePct = Math.round((maxCount / 4) * 100);
+    const alignmentLabel =
+      concordancePct === 100 ? "High"     :
+      concordancePct >= 75  ? "Moderate" :
+      concordancePct >= 50  ? "Low"      : "Very Low";
+
+    // Phase label (full strip) and short label (chart annotation)
+    let phaseLabel, shortLabel;
+    if (minStage === maxStage) {
+      phaseLabel = `Stage ${minStage} — ${STAGE_LABELS[minStage]}`;
+      shortLabel = `S${minStage}`;
+    } else if (hasTie) {
+      const lo = tiedStages[0], hi = tiedStages[tiedStages.length - 1];
+      phaseLabel = `Split: Stage ${lo} / Stage ${hi}`;
+      shortLabel = `S${lo}–S${hi}`;
+    } else if (maxStage - minStage === 1) {
+      phaseLabel = `Transition: Stage ${minStage} → Stage ${maxStage}`;
+      shortLabel = `S${minStage}→S${maxStage}`;
+    } else {
+      phaseLabel = `Mixed Phase (Stage ${minStage}–${maxStage})`;
+      shortLabel = `Mixed`;
+    }
+
+    // Leading/lagging only meaningful when a single dominant stage exists
+    const leading = dominantStage != null
+      ? regionalStages.filter((r) => r.stage > dominantStage).map((r) => r.region)
+      : [];
+    const lagging = dominantStage != null
+      ? regionalStages.filter((r) => r.stage < dominantStage).map((r) => r.region)
+      : [];
+
+    // Color swatch: use highest tied stage when no single dominant
+    const displayStage = dominantStage ?? tiedStages[tiedStages.length - 1];
+
+    return { phaseLabel, shortLabel, concordancePct, alignmentLabel,
+             dominantStage, displayStage, leading, lagging, hasTie };
+  }, [regionalStages]);
+
   // Chart data
   const chartData = useMemo(() => {
     const p25 = generatePercentileCurve(25, maxWeeks);
@@ -728,7 +811,7 @@ export default function App() {
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gridLine} />
-              <XAxis dataKey="week" stroke={COLORS.textMuted} tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} label={{ value: "Weeks", position: "insideBottom", offset: -4, fontSize: 12, fill: COLORS.textMuted }} />
+              <XAxis dataKey="week" type="number" domain={[0, maxWeeks]} stroke={COLORS.textMuted} tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} label={{ value: "Weeks", position: "insideBottom", offset: -4, fontSize: 12, fill: COLORS.textMuted }} />
               <YAxis domain={[0, 100]} stroke={COLORS.textMuted} tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} label={{ value: "%", position: "insideTopLeft", offset: 10, fontSize: 14, fill: COLORS.textMuted }} />
 
               {/* ── Biological healing phase bands ───────────────── */}
@@ -742,8 +825,8 @@ export default function App() {
                   <ReferenceArea
                     key={phase.name}
                     x1={x1} x2={x2}
-                    fill={phase.fill} fillOpacity={0.07}
-                    stroke={phase.fill} strokeOpacity={0.18} strokeWidth={1}
+                    fill={phase.fill} fillOpacity={0.15}
+                    stroke={phase.fill} strokeOpacity={0.35} strokeWidth={1}
                     label={labelText ? { value: labelText, position: "insideTopLeft", fontSize: 10, fill: phase.fill, fontFamily: "'DM Sans', sans-serif", fontWeight: 600, opacity: 0.8 } : undefined}
                   />
                 );
@@ -762,7 +845,10 @@ export default function App() {
               <Line type="monotone" dataKey="patient" stroke={COLORS.patient} strokeWidth={3.5} dot={<ChartDot currentWeek={currentRow.Week ?? 0} />} connectNulls={false} activeDot={false} />
 
               {currentRow.Week != null && (
-                <ReferenceLine x={currentRow.Week} stroke={COLORS.patient} strokeDasharray="3 3" strokeOpacity={0.3} />
+                <ReferenceLine x={currentRow.Week} stroke={COLORS.patient} strokeDasharray="3 3" strokeOpacity={0.3}
+                  label={globalPhase ? { value: globalPhase.shortLabel, position: "insideTopRight",
+                    fontSize: 9, fill: COLORS.textMuted, fontFamily: "'DM Sans', sans-serif", opacity: 0.7 } : undefined}
+                />
               )}
             </ComposedChart>
           </ResponsiveContainer>
@@ -786,6 +872,34 @@ export default function App() {
               <span style={{ fontSize: 11, color: COLORS.patient, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>Patient</span>
             </div>
           </div>
+
+          {/* ── Phase status strip ───────────────────────── */}
+          {globalPhase && (
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 24px",
+              padding: "8px 20px 4px", borderTop: "1px solid #2d333b", marginTop: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ width: 10, height: 10, borderRadius: 2,
+                  background: STAGE_COLORS[globalPhase.displayStage - 1] }} />
+                <span style={{ fontSize: 12, fontWeight: 700,
+                  color: STAGE_COLORS[globalPhase.displayStage - 1],
+                  fontFamily: "'DM Sans', sans-serif" }}>
+                  {globalPhase.phaseLabel}
+                </span>
+              </div>
+              <span style={{ fontSize: 11, color: COLORS.textMuted,
+                fontFamily: "'JetBrains Mono', monospace" }}>
+                Concordance: {globalPhase.concordancePct}% — {globalPhase.alignmentLabel}
+              </span>
+              {!globalPhase.hasTie && (globalPhase.leading.length > 0 || globalPhase.lagging.length > 0) && (
+                <span style={{ fontSize: 11, color: COLORS.textMuted,
+                  fontFamily: "'DM Sans', sans-serif", fontStyle: "italic" }}>
+                  {globalPhase.leading.length > 0 && `${globalPhase.leading.join(", ")} leading`}
+                  {globalPhase.leading.length > 0 && globalPhase.lagging.length > 0 && "; "}
+                  {globalPhase.lagging.length > 0 && `${globalPhase.lagging.join(", ")} lagging`}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ─── PLAYBACK CONTROLS ───────────────────────── */}
