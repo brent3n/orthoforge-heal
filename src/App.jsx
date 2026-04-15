@@ -217,10 +217,10 @@ function DonutChart({ currentRow }) {
         const y2 = cy - (outerR + 6) * Math.cos(angle);
         return <line key={`div-${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#e6edf3" strokeWidth={2} />;
       })}
-      <text x="180" y="7"  textAnchor="middle" fontSize="32" fontWeight="700" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Anterior</text>
-      <text x="180" y="330" textAnchor="middle" fontSize="32" fontWeight="700" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Posterior</text>
-      <text x="-30"  y="164" textAnchor="middle" fontSize="32" fontWeight="700" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Medial</text>
-      <text x="390" y="164" textAnchor="middle" fontSize="32" fontWeight="700" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Lateral</text>
+      <text x="180" y="7"  textAnchor="middle" fontSize="14" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Anterior</text>
+      <text x="180" y="330" textAnchor="middle" fontSize="14" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Posterior</text>
+      <text x="-30"  y="164" textAnchor="middle" fontSize="14" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Medial</text>
+      <text x="390" y="164" textAnchor="middle" fontSize="14" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Lateral</text>
     </svg>
   );
 }
