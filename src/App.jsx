@@ -41,13 +41,13 @@ const STAGE_COLORS = [COLORS.stage1, COLORS.stage2, COLORS.stage3, COLORS.stage4
 
 // ─── Percentile curve generator ──────────────────────────────
 function generatePercentileCurve(percentile, maxWeeks = 30) {
-  const weeksTo90 = { 10: 28, 50: 20, 75: 16, 90: 11 };
-  const target = weeksTo90[percentile];
+  const k = 3;
+  const scale = 1 / (1 - Math.exp(-k));
   const points = [];
   for (let w = 0; w <= maxWeeks; w++) {
-    const t = w / target;
-    const val = 100 * (1 - Math.exp(-2.3 * t));
-    points.push({ week: w, value: Math.min(Math.max(val, 0), 100) });
+    const t = w / maxWeeks;
+    const val = percentile * scale * (1 - Math.exp(-k * t));
+    points.push({ week: w, value: Math.min(Math.max(val, 0), percentile) });
   }
   return points;
 }
