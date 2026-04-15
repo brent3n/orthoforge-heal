@@ -230,8 +230,8 @@ function DonutChart({ currentRow }) {
 // ─── Stage Progress Bar ──────────────────────────────────────
 function StageBar({ label, stages }) {
   return (
-    <div style={{ display: "flex", alignItems: "stretch", gap: 16, flex: 1, minHeight: 24 }}>
-      <div style={{ width: 90, textAlign: "right", color: COLORS.text, fontWeight: 700, fontSize: 14, fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>{label}</div>
+    <div style={{ display: "flex", alignItems: "stretch", gap: 8, flex: 1, minHeight: 24 }}>
+      <div style={{ width: 70, textAlign: "right", color: COLORS.text, fontWeight: 700, fontSize: 14, fontFamily: "'DM Sans', sans-serif", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>{label}</div>
       <div style={{ display: "flex", gap: 4, flex: 1 }}>
         {[1, 2, 3, 4].map((stage) => {
           const val = stages[stage - 1] || 0;
@@ -789,6 +789,8 @@ export default function App() {
                 // Reset select back to current patient so it doesn't stick on "Import"
                 e.target.value = selectedPatient;
               } else {
+                setIsPlaying(false);
+                setCurrentIndex(0);
                 setSelectedPatient(e.target.value);
               }
             }}
@@ -928,12 +930,12 @@ export default function App() {
                   {globalPhase.phaseLabel}
                 </span>
               </div>
-              <span style={{ fontSize: 11, color: COLORS.textMuted,
+              <span style={{ fontSize: 11, color: COLORS.text,
                 fontFamily: "'JetBrains Mono', monospace" }}>
                 Anatomical Region Alignment: {globalPhase.concordancePct}% — {globalPhase.alignmentLabel}
               </span>
               {!globalPhase.hasTie && (globalPhase.leading.length > 0 || globalPhase.lagging.length > 0) && (
-                <span style={{ fontSize: 11, color: COLORS.textMuted,
+                <span style={{ fontSize: 11, color: COLORS.text,
                   fontFamily: "'DM Sans', sans-serif", fontStyle: "italic" }}>
                   {globalPhase.leading.length > 0 && `${globalPhase.leading.join(", ")} leading`}
                   {globalPhase.leading.length > 0 && globalPhase.lagging.length > 0 && "; "}
@@ -946,8 +948,8 @@ export default function App() {
 
         {/* ─── PLAYBACK CONTROLS ───────────────────────── */}
         <div className="compact-mb" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, padding: "8px 12px", background: COLORS.bgCard, borderRadius: 8, border: "1px solid #2d333b" }}>
-          <button onClick={playFromStart} className="ctrl-btn" style={{ background: COLORS.accent, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>▶ Play</button>
-          <button onClick={() => setIsPlaying(!isPlaying)} className="ctrl-btn" style={{ background: isPlaying ? PAUSE_COLOR : "#3a424d", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{isPlaying ? "⏸ Pause" : "⏯ Resume"}</button>
+          <button onClick={playFromStart} className="ctrl-btn" style={{ background: (isPlaying || currentIndex > 0) ? "#3a424d" : COLORS.accent, color: (isPlaying || currentIndex > 0) ? COLORS.accent : "#fff", border: (isPlaying || currentIndex > 0) ? `1px solid ${COLORS.accent}` : "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{(isPlaying || currentIndex > 0) ? "⏯ Restart" : "▶ Play"}</button>
+          <button onClick={() => setIsPlaying(!isPlaying)} className="ctrl-btn" style={{ background: isPlaying ? PAUSE_COLOR : "#3a424d", color: (!isPlaying && currentIndex > 0) ? PAUSE_COLOR : "#fff", border: (!isPlaying && currentIndex > 0) ? `1px solid ${PAUSE_COLOR}` : "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{(!isPlaying && currentIndex > 0) ? "⏯ Resume" : "⏸ Pause"}</button>
           <div style={{ flex: 1 }}>
             <input type="range" min={0} max={Math.max(timeData.length - 1, 0)} value={currentIndex} onChange={(e) => { setIsPlaying(false); setCurrentIndex(Number(e.target.value)); }} style={{ width: "100%" }} />
           </div>
