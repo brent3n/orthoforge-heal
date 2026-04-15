@@ -6,6 +6,7 @@ import {
   CartesianGrid,
   ReferenceLine,
   ReferenceArea,
+  ReferenceDot,
   ResponsiveContainer,
   ComposedChart,
 } from "recharts";
@@ -48,6 +49,7 @@ const PHASE_TRANSITION_STEPS          = 6;     // gradient steps per side (highe
 const PHASE_BOUNDARY_STROKE_OPACITY   = 0.08;  // opacity of the hard separator stroke on main bands
 const PAUSE_COLOR                     = "#d97706"; // pause button — keep distinct from stage colors
 const CHART_FLEX_WEIGHT               = 1.5;       // chart height relative to bottom panels (1.0 = equal split)
+const CHART_MIN_HEIGHT                = 200;        // minimum chart card height in px
 const BOTTOM_PANEL_OPACITY            = 0.75;      // stage matrix active fills + donut segment fills
 
 // ─── Region / stage metadata ─────────────────────────────────
@@ -217,10 +219,10 @@ function DonutChart({ currentRow }) {
         const y2 = cy - (outerR + 6) * Math.cos(angle);
         return <line key={`div-${i}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#e6edf3" strokeWidth={2} />;
       })}
-      <text x="180" y="7"  textAnchor="middle" fontSize="14" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Anterior</text>
-      <text x="180" y="330" textAnchor="middle" fontSize="14" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Posterior</text>
-      <text x="-30"  y="164" textAnchor="middle" fontSize="14" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Medial</text>
-      <text x="390" y="164" textAnchor="middle" fontSize="14" fontWeight="600" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Lateral</text>
+      <text x="180" y="7"  textAnchor="middle" fontSize="28" fontWeight="700" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Anterior</text>
+      <text x="180" y="330" textAnchor="middle" fontSize="28" fontWeight="700" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Posterior</text>
+      <text x="-30"  y="164" textAnchor="middle" fontSize="28" fontWeight="700" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Medial</text>
+      <text x="390" y="164" textAnchor="middle" fontSize="28" fontWeight="700" fill={COLORS.text} fontFamily="DM Sans, sans-serif">Lateral</text>
     </svg>
   );
 }
@@ -665,7 +667,7 @@ export default function App() {
       merged.push({
         week: w,
         p25: p25[w]?.value ?? 25, p50: p50[w]?.value ?? 50,
-        p75: p75[w]?.value ?? 100, p90: p90[w]?.value ?? 100,
+        p75: p75[w]?.value ?? 75,  p90: p90[w]?.value ?? 90,
         patient: inRange && patientRow ? patientRow.Overall_Pct : null,
         projected: projected ? projVal : (w === (currentRow.Week ?? 0) ? currentRow.Overall_Pct : null),
       });
@@ -691,8 +693,8 @@ export default function App() {
         .app-inner   { padding: 20px 24px; height: 100%; display: flex; flex-direction: column; min-height: 0; }
         .compact-mb  { margin-bottom: 12px; }
         .dash-title  { font-size: 22px; }
-        .chart-card  { padding: 20px 16px 12px 8px; flex: ${CHART_FLEX_WEIGHT}; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-        .stages-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; flex: 1; min-height: 0; }
+        .chart-card  { padding: 12px 12px 8px 8px; flex: ${CHART_FLEX_WEIGHT}; min-height: ${CHART_MIN_HEIGHT}px; display: flex; flex-direction: column; overflow: hidden; }
+        .stages-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; flex: 1; min-height: 0; }
         .stages-card { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
         .donut-card  { display: flex; min-height: 0; min-width: 0; }
         .patient-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px 24px; }
@@ -817,11 +819,10 @@ export default function App() {
         <div className="chart-card viz-card" style={{ marginBottom: 0 }}>
           <div style={{ flex: 1, minHeight: 0 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 10, right: 60, left: 10, bottom: 10 }}>
+            <ComposedChart data={chartData} margin={{ top: 10, right: 105, left: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gridLine} />
               <XAxis dataKey="week" type="number" domain={[0, maxWeeks]} stroke={COLORS.textMuted} tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} label={{ value: "Normalized Healing Period", position: "insideBottom", offset: -4, fontSize: 12, fill: COLORS.textMuted }} />
-              <YAxis domain={[0, 100]} stroke={COLORS.textMuted} tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} label={{ value: "%", position: "insideTopLeft", offset: 10, fontSize: 14, fill: COLORS.textMuted }} />
-
+              <YAxis domain={[0, 100]} width={40} stroke={COLORS.textMuted} tick={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }} label={{ value: "Percentile", angle: -90, position: "insideLeft", style: { textAnchor: "middle", fill: COLORS.textMuted, fontSize: 14, fontFamily: "'DM Sans', sans-serif" } }} />
               {/* ── Biological healing phase bands ───────────────── */}
               {HEALING_PHASES.map((phase) => {
                 const x1 = phase.start * maxWeeks;
@@ -866,6 +867,22 @@ export default function App() {
               <Line type="monotone" dataKey="p75" stroke={COLORS.percentile} strokeWidth={1.2} dot={false} strokeOpacity={0.8} />
               <Line type="monotone" dataKey="p90" stroke={COLORS.percentile} strokeWidth={1.2} dot={false} strokeOpacity={0.95} />
 
+              {/* Percentile right-edge labels */}
+              {chartData.length > 0 && [
+                { key: "p90", dataKey: "p90", text: "90th percentile", opacity: 0.99 },
+                { key: "p75", dataKey: "p75", text: "75th percentile", opacity: 0.99 },
+                { key: "p50", dataKey: "p50", text: "50th percentile", opacity: 0.99 },
+                { key: "p25", dataKey: "p25", text: "25th percentile", opacity: 0.99 },
+              ].map(({ key, dataKey, text, opacity }) => {
+                const last = chartData[chartData.length - 1];
+                return (
+                  <ReferenceDot key={`end-lbl-${key}`} x={maxWeeks} y={last[dataKey]} r={0}
+                    label={{ value: text, position: "right", offset: 6, fontSize: 9,
+                             fill: COLORS.percentile, fillOpacity: opacity,
+                             fontFamily: "DM Sans, sans-serif" }} />
+                );
+              })}
+
               {/* Patient projected trajectory — dashed */}
               <Line type="monotone" dataKey="projected" stroke={COLORS.patientProjected} strokeWidth={2} strokeDasharray="6 4" dot={false} connectNulls={false} strokeOpacity={0.5} />
 
@@ -873,10 +890,7 @@ export default function App() {
               <Line type="monotone" dataKey="patient" stroke={COLORS.patient} strokeWidth={3.5} dot={<ChartDot currentWeek={currentRow.Week ?? 0} />} connectNulls={false} activeDot={false} />
 
               {currentRow.Week != null && (
-                <ReferenceLine x={currentRow.Week} stroke={COLORS.patient} strokeDasharray="3 3" strokeOpacity={0.3}
-                  label={globalPhase ? { value: globalPhase.shortLabel, position: "insideTopRight",
-                    fontSize: 9, fill: COLORS.textMuted, fontFamily: "'DM Sans', sans-serif", opacity: 0.7 } : undefined}
-                />
+                <ReferenceLine x={currentRow.Week} stroke={COLORS.patient} strokeDasharray="3 3" strokeOpacity={0.3} />
               )}
             </ComposedChart>
           </ResponsiveContainer>
@@ -904,7 +918,7 @@ export default function App() {
           {/* ── Phase status strip ───────────────────────── */}
           {globalPhase && (
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 24px",
-              padding: "8px 20px 4px", borderTop: "1px solid #2d333b", marginTop: 4 }}>
+              padding: "4px 12px 2px", borderTop: "1px solid #2d333b", marginTop: 4 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ width: 10, height: 10, borderRadius: 2,
                   background: STAGE_COLORS[globalPhase.displayStage - 1] }} />
@@ -931,7 +945,7 @@ export default function App() {
         </div>
 
         {/* ─── PLAYBACK CONTROLS ───────────────────────── */}
-        <div className="compact-mb" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, padding: "12px 20px", background: COLORS.bgCard, borderRadius: 8, border: "1px solid #2d333b" }}>
+        <div className="compact-mb" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 16, padding: "8px 12px", background: COLORS.bgCard, borderRadius: 8, border: "1px solid #2d333b" }}>
           <button onClick={playFromStart} className="ctrl-btn" style={{ background: COLORS.accent, color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>▶ Play</button>
           <button onClick={() => setIsPlaying(!isPlaying)} className="ctrl-btn" style={{ background: isPlaying ? PAUSE_COLOR : "#3a424d", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontWeight: 600, fontFamily: "'DM Sans', sans-serif" }}>{isPlaying ? "⏸ Pause" : "⏯ Resume"}</button>
           <div style={{ flex: 1 }}>
@@ -944,8 +958,8 @@ export default function App() {
 
         {/* ─── STAGES + DONUT ──────────────────────────── */}
         <div className="stages-grid">
-          <div className="stages-card viz-card" style={{ padding: 24 }}>
-            <div style={{ display: "flex", gap: 20, marginBottom: 8, paddingLeft: 106 }}>
+          <div className="stages-card viz-card" style={{ padding: 6 }}>
+            <div style={{ display: "flex", gap: 20, marginBottom: 8, paddingLeft: 88 }}>
               {["Stage 1", "Stage 2", "Stage 3", "Stage 4"].map((s, i) => (
                 <div key={s} style={{ display: "flex", alignItems: "center", gap: 6, flex: 1 }}>
                   <div style={{ width: 12, height: 12, borderRadius: 2, background: STAGE_COLORS[i] }} />
@@ -960,13 +974,13 @@ export default function App() {
               <StageBar label="Medial" stages={[currentRow.Medial_S1 ?? 0, currentRow.Medial_S2 ?? 0, currentRow.Medial_S3 ?? 0, currentRow.Medial_S4 ?? 0]} />
             </div>
           </div>
-          <div className="donut-card viz-card" style={{ padding: 16 }}>
+          <div className="donut-card viz-card" style={{ padding: 12 }}>
             <DonutChart currentRow={currentRow} />
           </div>
         </div>
 
         <div style={{ textAlign: "center", padding: "24px 0 12px", color: COLORS.textMuted, fontSize: 12 }}>
-          OrthoForge Healing Analysis • Clinical Evaluation Dashboard • Version 12.3.0 • All rights reserved, Confidential 2026
+          OrthoForge Healing Analysis • Clinical Evaluation Dashboard • Version 12.3.7 • All rights reserved, Confidential 2026
         </div>
       </div>
     </div>
